@@ -7,6 +7,7 @@ ISO=Rocky-9.2-x86_64-minimal.iso
 
 cd $BASE_DIR/$PROJ || (echo project dir not found ; exit 1)
 test -f $BASE_DIR/$PROJ/inject/ks-$PROJ.cfg || ( echo kickstart not found ; exit 1)
+test -f $BASE_DIR/$PROJ/inject/ks_efi-$PROJ.cfg || ( echo kickstart not found ; exit 1)
 
 umount -fl $BASE_DIR/$PROJ/iso-mount/ || true
 test -f $BASE_DIR/iso/$ISO || bash $BASE_DIR/iso/download_iso.sh
@@ -28,8 +29,7 @@ rsync -av inject iso-remaster/
 
 ISO_NAME="$(cat iso-remaster/EFI/BOOT/grub.cfg | grep no-floppy | cut -d\' -f2)"
 #old: sed -i "/^menuentry /i menuentry '$PROJ_NAME' --class fedora --class gnu-linux --class gnu --class os {\n        linuxefi /images/pxeboot/vmlinuz inst.stage2=hd:LABEL=$ISO_NAME inst.ks=cdrom:/inject/ks-$PROJ.cfg\n        initrdefi /images/pxeboot/initrd.img\n}\n" iso-remaster/EFI/BOOT/grub.cfg
-awk -v proj="$PROJ_NAME" -v iso="$ISO_NAME" -v proj_cfg="$PROJ" 'flag==0 && /^menuentry / {print "menuentry ''"proj"'' --class fedora --class gnu-linux --class gnu --class os {\n        linuxefi /images/pxeboot/vmlinuz inst.stage2=hd:LABEL=''"iso"'' inst.ks=cdrom:/inject/ks-''"proj_cfg"''.cfg\n        initrdefi /images/pxeboot/initrd.img\n}\n"; print; flag=1; next} 1' iso-remaster/EFI/BOOT/grub.cfg > temp && mv temp -f iso-remaster/EFI/BOOT/grub.cfg
-
+awk -v proj="$PROJ_NAME" -v iso="$ISO_NAME" -v proj_cfg="$PROJ" 'flag==0 && /^menuentry / {print "menuentry '\''"proj"'\'' --class fedora --class gnu-linux --class gnu --class os {\n        linuxefi /images/pxeboot/vmlinuz inst.stage2=hd:LABEL=''"iso"'' inst.ks=cdrom:/inject/ks_efi-''"proj_cfg"''.cfg\n        initrdefi /images/pxeboot/initrd.img\n}\n"; print; flag=1; next} 1' iso-remaster/EFI/BOOT/grub.cfg > temp && mv -f temp iso-remaster/EFI/BOOT/grub.cfg
 
 sed -i "/^label linux/i label linux-$PROJ\n  menu label ^$PROJ_NAME\n  kernel vmlinuz\n  append initrd=initrd.img inst.stage2=hd:LABEL=$ISO_NAME inst.ks=cdrom:/inject/ks-$PROJ.cfg\n" iso-remaster/isolinux/isolinux.cfg
 
